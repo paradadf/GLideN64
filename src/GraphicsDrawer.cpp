@@ -315,7 +315,7 @@ void GraphicsDrawer::_updateScreenCoordsViewport(const FrameBuffer * _pBuffer) c
 }
 
 static
-void _legacySetBlendMode()
+void _legacyBlending()
 {
 	const u32 blendmode = gDP.otherMode.l >> 16;
 	// 0x7000 = CVG_X_ALPHA|ALPHA_CVG_SEL|FORCE_BL
@@ -478,8 +478,9 @@ void _legacySetBlendMode()
 	}
 }
 
-
-void GraphicsDrawer::_oldSetBlendMode() const {
+static
+void _ordinaryBlending()
+{
 
 	// Set unsupported blend modes
 	if (gDP.otherMode.cycleType == G_CYC_2CYCLE) {
@@ -531,8 +532,7 @@ void GraphicsDrawer::_oldSetBlendMode() const {
 				// c_in * a_mem
 				srcFactor = blend::DST_ALPHA;
 			}
-		}
-		else {
+		} else {
 			muxA = gDP.otherMode.c1_m1b;
 			muxB = gDP.otherMode.c1_m2b;
 			if (gDP.otherMode.c1_m1a == 1) {
@@ -542,8 +542,7 @@ void GraphicsDrawer::_oldSetBlendMode() const {
 					return;
 				}
 				memFactorSource = 0;
-			}
-			else if (gDP.otherMode.c1_m2a == 1) {
+			} else if (gDP.otherMode.c1_m2a == 1) {
 				memFactorSource = 1;
 			}
 			if (gDP.otherMode.c1_m2a == 0 && gDP.otherMode.c1_m2b == 1) {
@@ -618,16 +617,14 @@ void GraphicsDrawer::_oldSetBlendMode() const {
 		if (gDP.otherMode.cycleType == G_CYC_1CYCLE) {
 			if (gDP.otherMode.c1_m1a == 1)
 				useMemColor = true;
-		}
-		else if (gDP.otherMode.cycleType == G_CYC_2CYCLE) {
+		} else if (gDP.otherMode.cycleType == G_CYC_2CYCLE) {
 			if (gDP.otherMode.c2_m1a == 1)
 				useMemColor = true;
 		}
 		if (useMemColor) {
 			gfxContext.enable(enable::BLEND, true);
 			gfxContext.setBlending(blend::ZERO, blend::ONE);
-		}
-		else {
+		} else {
 			gfxContext.enable(enable::BLEND, false);
 		}
 	}
@@ -636,18 +633,9 @@ void GraphicsDrawer::_oldSetBlendMode() const {
 	}
 }
 
-void GraphicsDrawer::_setBlendMode() const
+static
+void _dualSourceBlending()
 {
-	if (config.generalEmulation.enableLegacyBlending != 0) {
-		_legacySetBlendMode();
-		return;
-	}
-
-	if (!Context::DualSourceBlending) {
-		_oldSetBlendMode();
-		return;
-	}
-
 	if (gDP.otherMode.cycleType < G_CYC_COPY) {
 		BlendParam srcFactor = blend::ONE;
 		BlendParam dstFactor = blend::SRC1_COLOR;
@@ -661,7 +649,8 @@ void GraphicsDrawer::_setBlendMode() const
 				if (gDP.otherMode.c2_m2a == 1 && gDP.otherMode.c2_m2b == 1) {
 					dstFactor = blend::DST_ALPHA;
 				}
-			} else {
+			}
+			else {
 				if (gDP.otherMode.c1_m2a != 1 && gDP.otherMode.c1_m2b == 1) {
 					srcFactor = blend::DST_ALPHA;
 				}
@@ -669,16 +658,33 @@ void GraphicsDrawer::_setBlendMode() const
 					dstFactor = blend::DST_ALPHA;
 				}
 			}
-		} else if ((config.generalEmulation.hacks & hack_blastCorps) != 0 &&
+		}
+		else if ((config.generalEmulation.hacks & hack_blastCorps) != 0 &&
 			gSP.texture.on == 0 && currentCombiner()->usesTexture()) { // Blast Corps
 			srcFactor = blend::ZERO;
 			dstFactor = blend::ONE;
 		}
 		gfxContext.enable(enable::BLEND, true);
 		gfxContext.setBlendingSeparate(srcFactor, dstFactor, srcFactorAlpha, dstFactorAlpha);
-	} else {
+	}
+	else {
 		gfxContext.enable(enable::BLEND, false);
 	}
+}
+
+void GraphicsDrawer::_setBlendMode() const
+{
+	if (config.generalEmulation.enableLegacyBlending != 0) {
+		_legacyBlending();
+		return;
+	}
+
+	if (Context::DualSourceBlending) {
+		_dualSourceBlending();
+		return;
+	}
+
+	_ordinaryBlending();
 }
 
 void GraphicsDrawer::_updateTextures() const
@@ -1093,7 +1099,7 @@ bool texturedRectShadowMap(const GraphicsDrawer::TexturedRectParams &)
 			pCurrentBuffer->m_pDepthBuffer->activateDepthBufferTexture(pCurrentBuffer);
 			CombinerInfo::get().setDepthFogCombiner();
 			// DepthFogCombiner does not support shader blending.
-			_legacySetBlendMode();
+			_legacyBlending();
 			return false;
 		}
 	}
