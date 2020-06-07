@@ -987,14 +987,17 @@ public:
 			"IN lowp float vNumLights;		\n"
 		;
 
-		m_part +=
-			"layout(location = 0, index = 0) OUT lowp vec4 fragColor; 	\n"
-			;
 		if (_glinfo.dual_source_blending) {
 			m_part +=
-				"layout(location = 0, index = 1) OUT lowp vec4 fragColor1;   \n"
-				;
+				"layout(location = 0, index = 0) OUT lowp vec4 fragColor; 	\n"
+				"layout(location = 0, index = 1) OUT lowp vec4 fragColor1;	\n"
+			;
+		} else {
+			m_part +=
+				"OUT lowp vec4 fragColor;	\n"
+			;
 		}
+
 		if (config.frameBufferEmulation.N64DepthCompare == Config::dcFast && _glinfo.ext_fetch) {
 			m_part +=
 				"layout(location = 1) inout highp vec4 depthZ;	\n"
@@ -1075,14 +1078,17 @@ public:
 			"IN lowp float vNumLights;	\n"
 		;
 
-		m_part +=
-			"layout(location = 0, index = 0) OUT lowp vec4 fragColor; 	\n"
-			;
 		if (_glinfo.dual_source_blending) {
 			m_part +=
-				"layout(location = 0, index = 1) OUT lowp vec4 fragColor1;   \n"
-				;
+				"layout(location = 0, index = 0) OUT lowp vec4 fragColor; 	\n"
+				"layout(location = 0, index = 1) OUT lowp vec4 fragColor1;	\n"
+			;
+		} else {
+			m_part +=
+				"OUT lowp vec4 fragColor;	\n"
+			;
 		}
+
 		if (config.frameBufferEmulation.N64DepthCompare == Config::dcFast && _glinfo.ext_fetch) {
 			m_part +=
 				"layout(location = 1) inout highp vec4 depthZ;	\n"
