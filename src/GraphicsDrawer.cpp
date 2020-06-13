@@ -679,7 +679,7 @@ void GraphicsDrawer::_setBlendMode() const
 		return;
 	}
 
-	if (Context::DualSourceBlending) {
+	if (Context::DualSourceBlending && !isTexrectDrawerMode()) {
 		_dualSourceBlending();
 		return;
 	}
